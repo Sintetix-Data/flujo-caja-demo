@@ -24,7 +24,7 @@ TX_PATTERN = re.compile(
     r"^(\d{1,2})/([A-Z]{3})\s+(\d{1,2})/([A-Z]{3})\s+(.+?)\s+([\d,]+\.\d{2})(?:\s+[\d,]+\.\d{2})*\s*$"
 )
 PERIODO_PATTERN = re.compile(
-    r"Periodo DEL \d{2}/\d{2}/(\d{4}) AL \d{2}/\d{2}/(\d{4})"
+    r"Periodo DEL (\d{2})/(\d{2})/(\d{4}) AL (\d{2})/(\d{2})/(\d{4})"
 )
 
 ABONO_KEYWORDS = (
@@ -51,7 +51,10 @@ def parse_bank_statement(pdf_path: str | Path) -> pd.DataFrame:
     """
     rows: list[dict] = []
     with pdfplumber.open(pdf_path) as pdf:
-        year = _extract_year(pdf) or datetime.now().year
+        period = _extract_period(pdf)
+        if period is None:
+            now = datetime.now()
+            period = (1, now.year, 12, now.year)
 
         all_lines: list[str] = []
         for page in pdf.pages[1:]:  # primera página es imagen
@@ -64,7 +67,7 @@ def parse_bank_statement(pdf_path: str | Path) -> pd.DataFrame:
             if not line or _is_noise(line):
                 continue
 
-            header = _parse_header(line, year)
+            header = _parse_header(line, period)
             if header is not None:
                 if current is not None:
                     rows.append(_finalize(current))
@@ -79,20 +82,34 @@ def parse_bank_statement(pdf_path: str | Path) -> pd.DataFrame:
     return pd.DataFrame(rows)
 
 
-def _extract_year(pdf) -> int | None:
+def _extract_period(pdf) -> tuple[int, int, int, int] | None:
+    """Devuelve (start_month, start_year, end_month, end_year) o None."""
     for page in pdf.pages[:3]:
         text = page.extract_text() or ""
         m = PERIODO_PATTERN.search(text)
         if m:
-            return int(m.group(2))
+            _, sm, sy, _, em, ey = m.groups()
+            return int(sm), int(sy), int(em), int(ey)
     return None
+
+
+def _resolve_year(month: int, period: tuple[int, int, int, int]) -> int:
+    """Asigna el año correcto a una transacción según su mes y el periodo.
+
+    Si el periodo cruza año (ej. Dic 2024 → Ene 2025), las transacciones de
+    diciembre van al start_year y las de enero al end_year.
+    """
+    start_m, start_y, _, end_y = period
+    if start_y == end_y:
+        return start_y
+    return start_y if month >= start_m else end_y
 
 
 def _is_noise(line: str) -> bool:
     return any(line.startswith(p) for p in NOISE_PREFIXES)
 
 
-def _parse_header(line: str, year: int) -> dict | None:
+def _parse_header(line: str, period: tuple[int, int, int, int]) -> dict | None:
     m = TX_PATTERN.match(line)
     if not m:
         return None
@@ -103,6 +120,7 @@ def _parse_header(line: str, year: int) -> dict | None:
         return None
 
     try:
+        year = _resolve_year(mes_num, period)
         fecha = datetime(year, mes_num, int(day_str))
         monto_abs = float(monto_str.replace(",", ""))
     except (ValueError, TypeError):
