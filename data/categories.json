@@ -1,0 +1,11 @@
+{
+  "version": "0.1.0",
+  "categorias_principales": [
+    "Ingresos",
+    "Costo de ventas",
+    "Gastos operativos",
+    "Gastos financieros",
+    "Inversiones",
+    "Otros"
+  ]
+}

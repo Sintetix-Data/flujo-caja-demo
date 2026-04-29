@@ -216,3 +216,15 @@ __marimo__/
 
 # Streamlit
 .streamlit/secrets.toml
+
+# --- Sintetix Data project-specific ---
+
+# Bank statement PDFs — REAL or anonymized data, never commit
+data/*.pdf
+
+# OneDrive temp / sync conflict files
+*~$*
+.~lock.*
+
+# Power BI Desktop session locks
+*.pbix.lck
