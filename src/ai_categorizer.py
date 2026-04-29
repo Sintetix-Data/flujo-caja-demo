@@ -21,6 +21,7 @@ DEFAULT_BATCH_SIZE = 10
 PROMPT_SINGLE = """Eres un experto en NIF mexicanas categorizando transacciones bancarias.
 
 Transacción: {descripcion_cruda}
+Detalle adicional: {descripcion_extendida}
 Monto: {monto} MXN
 Tipo: {tipo}
 
@@ -52,9 +53,18 @@ Responde SOLO el JSON array de {n} objetos. Sin markdown, sin explicación."""
 
 def categorize(transaccion: dict) -> dict:
     """Categoriza UNA transacción. Útil para debugging."""
-    prompt = PROMPT_SINGLE.format(**transaccion)
+    prompt = PROMPT_SINGLE.format(**_prep_tx(transaccion))
     raw = _run_claude(prompt)
     return _parse_json_obj(raw)
+
+
+def _prep_tx(tx: dict) -> dict:
+    return {
+        "descripcion_cruda": tx.get("descripcion_cruda", ""),
+        "descripcion_extendida": tx.get("descripcion_extendida", ""),
+        "monto": tx.get("monto", 0),
+        "tipo": tx.get("tipo", "cargo"),
+    }
 
 
 def categorize_batch(
@@ -69,10 +79,12 @@ def categorize_batch(
 
 
 def categorize_chunk(chunk: list[dict]) -> list[dict]:
+    prep = [_prep_tx(tx) for tx in chunk]
     items = "\n".join(
         f"{i + 1}. Descripción: {tx['descripcion_cruda']} | "
+        f"Detalle: {tx['descripcion_extendida']} | "
         f"Monto: {tx['monto']} MXN | Tipo: {tx['tipo']}"
-        for i, tx in enumerate(chunk)
+        for i, tx in enumerate(prep)
     )
     prompt = PROMPT_BATCH.format(n=len(chunk), items=items)
     raw = _run_claude(prompt)

@@ -1,9 +1,12 @@
 """Parser para estados de cuenta BBVA México (Libretón Básico Cuenta Digital).
 
-Las transacciones aparecen como líneas de texto, no como tablas formales.
-Patrón por línea: DD/MMM DD/MMM <descripción> <monto> [saldos opcionales]
+Las transacciones aparecen como una línea de cabecera + 0..N sublíneas con
+contexto adicional (RFC, AUT, recipiente del SPEI, concepto NOMINA, etc.).
 
-La primera página suele ser imagen (sin texto extraíble) — se omite.
+Cabecera: DD/MMM DD/MMM <descripción> <monto> [saldos opcionales]
+Sublíneas: cualquier línea entre cabeceras (excepto ruido fijo del PDF).
+
+La primera página suele ser imagen — se omite.
 """
 import re
 from datetime import datetime
@@ -24,28 +27,55 @@ PERIODO_PATTERN = re.compile(
     r"Periodo DEL \d{2}/\d{2}/(\d{4}) AL \d{2}/\d{2}/(\d{4})"
 )
 
-# Palabras en la descripción que indican que la transacción es un ABONO
-# (dinero entrante). Por defecto las transacciones se asumen cargos.
 ABONO_KEYWORDS = (
     "RECIBIDO", "ABONO", "DEPOSITO", "DEPÓSITO",
     "DEVOLUCION", "DEVOLUCIÓN", "NOMINA", "NÓMINA",
+    "PGO NOMINA",
+)
+
+NOISE_PREFIXES = (
+    "Estado de Cuenta",
+    "Libretón", "Libreton",
+    "PAGINA",
+    "No. de Cuenta", "No. de Cliente",
+    "Periodo DEL",
+    "Fecha de Corte",
+    "BBVA MEXICO",
+    "Av. Paseo",
 )
 
 
 def parse_bank_statement(pdf_path: str | Path) -> pd.DataFrame:
-    """Lee un estado de cuenta BBVA y devuelve un DataFrame con
-    columnas: fecha (datetime), descripcion_cruda (str), monto (float),
-    tipo (cargo | abono).
+    """Lee un estado de cuenta BBVA y devuelve un DataFrame con columnas:
+    fecha, descripcion_cruda, descripcion_extendida, monto, tipo.
     """
     rows: list[dict] = []
     with pdfplumber.open(pdf_path) as pdf:
         year = _extract_year(pdf) or datetime.now().year
+
+        all_lines: list[str] = []
         for page in pdf.pages[1:]:  # primera página es imagen
             text = page.extract_text() or ""
-            for line in text.split("\n"):
-                tx = _parse_line(line, year)
-                if tx is not None:
-                    rows.append(tx)
+            all_lines.extend(text.split("\n"))
+
+        current: dict | None = None
+        for raw in all_lines:
+            line = raw.strip()
+            if not line or _is_noise(line):
+                continue
+
+            header = _parse_header(line, year)
+            if header is not None:
+                if current is not None:
+                    rows.append(_finalize(current))
+                current = header
+                current["sublines"] = []
+            elif current is not None:
+                current["sublines"].append(line)
+
+        if current is not None:
+            rows.append(_finalize(current))
+
     return pd.DataFrame(rows)
 
 
@@ -58,8 +88,12 @@ def _extract_year(pdf) -> int | None:
     return None
 
 
-def _parse_line(line: str, year: int) -> dict | None:
-    m = TX_PATTERN.match(line.strip())
+def _is_noise(line: str) -> bool:
+    return any(line.startswith(p) for p in NOISE_PREFIXES)
+
+
+def _parse_header(line: str, year: int) -> dict | None:
+    m = TX_PATTERN.match(line)
     if not m:
         return None
 
@@ -74,20 +108,30 @@ def _parse_line(line: str, year: int) -> dict | None:
     except (ValueError, TypeError):
         return None
 
-    descripcion = descripcion.strip()
-    tipo = _classify_tipo(descripcion)
-    monto = monto_abs if tipo == "abono" else -monto_abs
-
     return {
         "fecha": fecha,
-        "descripcion_cruda": descripcion,
-        "monto": monto,
+        "descripcion_cruda": descripcion.strip(),
+        "monto_abs": monto_abs,
+    }
+
+
+def _finalize(current: dict) -> dict:
+    sublines = current.pop("sublines", [])
+    extended = " | ".join(sublines)
+    full_text = current["descripcion_cruda"] + " " + extended
+    tipo = _classify_tipo(full_text)
+    monto_abs = current.pop("monto_abs")
+    return {
+        "fecha": current["fecha"],
+        "descripcion_cruda": current["descripcion_cruda"],
+        "descripcion_extendida": extended,
+        "monto": monto_abs if tipo == "abono" else -monto_abs,
         "tipo": tipo,
     }
 
 
-def _classify_tipo(descripcion: str) -> str:
-    desc_upper = descripcion.upper()
-    if any(kw in desc_upper for kw in ABONO_KEYWORDS):
+def _classify_tipo(texto: str) -> str:
+    texto_upper = texto.upper()
+    if any(kw in texto_upper for kw in ABONO_KEYWORDS):
         return "abono"
     return "cargo"

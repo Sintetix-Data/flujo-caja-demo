@@ -81,6 +81,7 @@ def main() -> int:
                 "id": make_id(fecha_iso, tx["descripcion_cruda"], tx["monto"]),
                 "fecha": fecha_iso,
                 "descripcion_cruda": tx["descripcion_cruda"],
+                "descripcion_extendida": tx.get("descripcion_extendida", ""),
                 "monto": float(tx["monto"]),
                 "tipo": tx["tipo"],
                 **cat,

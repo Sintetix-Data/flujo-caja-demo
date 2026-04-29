@@ -6,9 +6,13 @@ from pathlib import Path
 
 
 def make_id(fecha: str, descripcion: str, monto: float) -> str:
-    """ID determinístico tx_YYYY_MM_<hash6> a partir de fecha+descripción+monto."""
+    """ID determinístico tx_YYYY_MM_<hash6>.
+
+    Usa abs(monto) para que el ID sea estable aunque después
+    re-clasifiquemos la transacción de cargo a abono o viceversa.
+    """
     year, month = fecha[:4], fecha[5:7]
-    digest = hashlib.md5(f"{fecha}|{descripcion}|{monto}".encode()).hexdigest()[:6]
+    digest = hashlib.md5(f"{fecha}|{descripcion}|{abs(monto)}".encode()).hexdigest()[:6]
     return f"tx_{year}_{month}_{digest}"
 
 
