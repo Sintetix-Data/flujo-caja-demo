@@ -64,11 +64,11 @@ def categorize_batch(
     results: list[dict] = []
     for i in range(0, len(transactions), batch_size):
         chunk = transactions[i : i + batch_size]
-        results.extend(_categorize_chunk(chunk))
+        results.extend(categorize_chunk(chunk))
     return results
 
 
-def _categorize_chunk(chunk: list[dict]) -> list[dict]:
+def categorize_chunk(chunk: list[dict]) -> list[dict]:
     items = "\n".join(
         f"{i + 1}. Descripción: {tx['descripcion_cruda']} | "
         f"Monto: {tx['monto']} MXN | Tipo: {tx['tipo']}"
