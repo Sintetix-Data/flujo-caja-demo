@@ -1,0 +1,129 @@
+{
+  "name": "Sintetix Data",
+  "dataColors": [
+    "#00E5FF",
+    "#7C3AED",
+    "#39FF9E",
+    "#FBBF24",
+    "#EF4444",
+    "#10B981",
+    "#F8FAFC",
+    "#64748B"
+  ],
+  "background": "#0A1F3D",
+  "foreground": "#F8FAFC",
+  "tableAccent": "#00E5FF",
+  "good": "#39FF9E",
+  "neutral": "#64748B",
+  "bad": "#EF4444",
+  "maximum": "#39FF9E",
+  "center": "#00E5FF",
+  "minimum": "#EF4444",
+  "null": "#64748B",
+  "textClasses": {
+    "label": {
+      "fontFace": "Helvetica",
+      "fontSize": 10,
+      "color": "#F8FAFC"
+    },
+    "callout": {
+      "fontFace": "Helvetica",
+      "fontSize": 32,
+      "color": "#F8FAFC"
+    },
+    "title": {
+      "fontFace": "Helvetica",
+      "fontSize": 14,
+      "color": "#00E5FF"
+    },
+    "header": {
+      "fontFace": "Helvetica",
+      "fontSize": 12,
+      "color": "#7C3AED"
+    }
+  },
+  "visualStyles": {
+    "*": {
+      "*": {
+        "background": [
+          { "show": false }
+        ],
+        "border": [
+          { "show": false }
+        ],
+        "title": [
+          {
+            "fontFamily": "Helvetica",
+            "fontSize": 12,
+            "fontColor": { "solid": { "color": "#00E5FF" } }
+          }
+        ]
+      }
+    },
+    "card": {
+      "*": {
+        "categoryLabels": [
+          {
+            "color": { "solid": { "color": "#7C3AED" } },
+            "fontFamily": "Helvetica",
+            "fontSize": 10
+          }
+        ],
+        "labels": [
+          {
+            "color": { "solid": { "color": "#F8FAFC" } },
+            "fontFamily": "Helvetica",
+            "fontSize": 32
+          }
+        ]
+      }
+    },
+    "slicer": {
+      "*": {
+        "header": [
+          {
+            "fontColor": { "solid": { "color": "#7C3AED" } },
+            "fontFamily": "Helvetica",
+            "fontSize": 11
+          }
+        ],
+        "items": [
+          {
+            "fontColor": { "solid": { "color": "#F8FAFC" } },
+            "fontFamily": "Helvetica",
+            "fontSize": 10,
+            "background": { "solid": { "color": "#0A1F3D" } }
+          }
+        ]
+      }
+    },
+    "tableEx": {
+      "*": {
+        "grid": [
+          {
+            "gridVertical": true,
+            "gridVerticalColor": { "solid": { "color": "#7C3AED" } },
+            "gridHorizontalColor": { "solid": { "color": "#7C3AED" } }
+          }
+        ],
+        "columnHeaders": [
+          {
+            "fontColor": { "solid": { "color": "#00E5FF" } },
+            "backColor": { "solid": { "color": "#051B36" } },
+            "fontFamily": "Helvetica",
+            "fontSize": 10,
+            "bold": true
+          }
+        ],
+        "values": [
+          {
+            "fontColor": { "solid": { "color": "#F8FAFC" } },
+            "backColor": { "solid": { "color": "#0A1F3D" } },
+            "fontFamily": "Helvetica",
+            "fontSize": 9
+          }
+        ]
+      }
+    }
+  }
+}
