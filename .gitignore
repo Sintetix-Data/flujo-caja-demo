@@ -228,3 +228,6 @@ data/*.pdf
 
 # Power BI Desktop session locks
 *.pbix.lck
+
+# Power BI files — pueden cachear datos sin anonimizar
+*.pbix

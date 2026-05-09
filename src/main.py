@@ -10,6 +10,7 @@ from datetime import datetime, timezone
 from pathlib import Path
 
 from src.ai_categorizer import DEFAULT_BATCH_SIZE, categorize_chunk
+from src.anonimizar import anonimize_cruda, anonimize_extendida
 from src.json_writer import make_id, merge_into_json
 from src.parser import parse_bank_statement
 
@@ -76,12 +77,15 @@ def main() -> int:
     for tx, cat in zip(txs, categorizations):
         fecha = tx["fecha"]
         fecha_iso = fecha.strftime("%Y-%m-%d") if hasattr(fecha, "strftime") else str(fecha)[:10]
+        # Anonimizar PII antes de persistir (RFCs, nombres, números de cuenta)
+        desc_cruda = anonimize_cruda(tx["descripcion_cruda"])
+        desc_ext = anonimize_extendida(tx.get("descripcion_extendida", ""))
         full_txs.append(
             {
-                "id": make_id(fecha_iso, tx["descripcion_cruda"], tx["monto"]),
+                "id": make_id(fecha_iso, desc_cruda, tx["monto"]),
                 "fecha": fecha_iso,
-                "descripcion_cruda": tx["descripcion_cruda"],
-                "descripcion_extendida": tx.get("descripcion_extendida", ""),
+                "descripcion_cruda": desc_cruda,
+                "descripcion_extendida": desc_ext,
                 "monto": float(tx["monto"]),
                 "tipo": tx["tipo"],
                 **cat,
